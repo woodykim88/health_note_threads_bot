@@ -50,3 +50,13 @@ PRODUCT_FROM_END = False
 # 교차 추천: 뉴스 글 3개에 1번, 답글 출처 아래에 붙인다 (첫 글에 링크를 달면 노출이 줄어드는 경향이 있어 답글에만)
 CROSS_PROMO = '📸 건강 꿀팁은 카드로도 정리 중이에요: 인스타 @health_note_shorts\nhttps://www.instagram.com/health_note_shorts/'
 CROSS_PROMO_EVERY = 3
+
+# 일상글 (2026-09-27 사용자 결정): 매일 12:30, 링크·광고 없는 짧은 대화형 글. 지어낸 경험은 쓰지 않는다 (src/casual.py).
+CASUAL_HOUR: int | None = 12
+CASUAL_FALLBACKS = (  # AI 글이 검수에 두 번 떨어졌을 때 쓰는 준비된 질문 (회차를 건너뛰지 않기 위해)
+    '여러분은 하루에 물 몇 잔 정도 드세요? 💧',
+    '점심 먹고 졸릴 때 여러분만의 방법 있으세요?',
+    '아침형 vs 저녁형, 여러분은 어느 쪽이에요?',
+    '오늘 하루 몇 걸음 걸으셨어요? 🚶',
+    '요즘 자기 전에 휴대폰 얼마나 보세요?',
+)
