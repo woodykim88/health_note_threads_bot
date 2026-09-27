@@ -43,3 +43,10 @@ BANNED_WORDS = (
     '충격', '경악', '소름', '암이 사라', '살이 쫙',
     '복용량', '약을 끊', '약을 줄', '영양제', '건강기능식품', '병원 추천',
 )
+
+# 수익화 (2026-09-27 사용자 결정): 건강 채널은 제휴 링크를 넣지 않는다 (신뢰·광고 규제). 교차 추천만 한다.
+PRODUCT_HOUR: int | None = None
+PRODUCT_FROM_END = False
+# 교차 추천: 뉴스 글 3개에 1번, 답글 출처 아래에 붙인다 (첫 글에 링크를 달면 노출이 줄어드는 경향이 있어 답글에만)
+CROSS_PROMO = '📸 건강 꿀팁은 카드로도 정리 중이에요: 인스타 @health_note_shorts\nhttps://www.instagram.com/health_note_shorts/'
+CROSS_PROMO_EVERY = 3

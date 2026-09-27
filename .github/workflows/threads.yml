@@ -12,6 +12,10 @@ on:
         type: choice
         options: [preview, post, refresh-token]
         default: preview
+      hour:
+        description: 'preview 전용: 제품 슬롯 시각 (건강노트는 제품 추천 없음)'
+        type: string
+        default: ''
 
 concurrency:
   group: threads
@@ -75,7 +79,8 @@ jobs:
           TEXT_PROVIDER: ${{ vars.TEXT_PROVIDER }}
           WRITER_MODEL: ${{ vars.WRITER_MODEL }}
           FAST_MODEL: ${{ vars.FAST_MODEL }}
-        run: python -m src.main --job ${{ steps.pick.outputs.job }}
+          HOUR: ${{ inputs.hour }}
+        run: python -m src.main --job ${{ steps.pick.outputs.job }} ${HOUR:+--hour "$HOUR"}
 
       - name: Upload preview
         if: always() && steps.pick.outputs.job == 'preview'
