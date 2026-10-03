@@ -44,11 +44,11 @@ BANNED_WORDS = (
     '복용량', '약을 끊', '약을 줄', '영양제', '건강기능식품', '병원 추천',
 )
 
-# 수익화 (2026-09-27 사용자 결정): 건강 채널은 제휴 링크를 넣지 않는다 (신뢰·광고 규제). 교차 추천만 한다.
+# 수익화 (2026-09-27 사용자 결정): 건강 채널은 제휴 링크를 넣지 않는다 (신뢰·광고 규제).
 PRODUCT_HOUR: int | None = None
 PRODUCT_FROM_END = False
-# 교차 추천: 뉴스 글 3개에 1번, 답글 출처 아래에 붙인다 (첫 글에 링크를 달면 노출이 줄어드는 경향이 있어 답글에만)
-CROSS_PROMO = '📸 건강 꿀팁 카드로도 정리 중! 인스타 @health_note_shorts\nhttps://www.instagram.com/health_note_shorts/'
+# 교차 추천 (2026-10-03 사용자 결정): 다른 채널 추천은 그만하고 답글 끝엔 기사 출처만 붙인다.
+CROSS_PROMO = ''
 CROSS_PROMO_EVERY = 3
 
 # 말투 (2026-09-30 사용자 결정): 반말 + 친근하고 유머러스하게 (prompts/writer.md·casual.md)
