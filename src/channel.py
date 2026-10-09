@@ -14,6 +14,8 @@ NAME = '건강노트'
 HANDLE = 'health_note_news'
 TOPIC = '오늘의 건강 소식'
 CMD_PREFIX = 'hn'  # 텔레그램 명령: /hn_stop /hn_skip /hn_resume (다른 Threads 채널과 겹치지 않게)
+# 첫 글에 붙이는 토픽 태그 (2026-10-10, 글당 1개만 가능). 토픽 피드·검색에 걸리게 하려는 것. 비우면 안 붙인다.
+TOPIC_TAG = '건강'
 
 # 인스타 건강노트와 같은 건강 전문 매체 공식 RSS (네 곳 모두 robots.txt가 수집을 허용, 2026-09-27 확인)
 FEEDS = (
