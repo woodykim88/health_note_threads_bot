@@ -7,6 +7,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
+from src import reels
 from src.providers import TextBackend
 
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / 'prompts'
@@ -51,6 +52,7 @@ def load_prompt(name: str) -> str:
         if PERFORMANCE_PATH.exists():
             text += PERFORMANCE_PATH.read_text(encoding='utf-8')
         text += reference_examples()
+    text += reels.brief(name, reels.today())
     return text
 
 

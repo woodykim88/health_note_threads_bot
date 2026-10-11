@@ -1,0 +1,38 @@
+[
+  {
+    "date": "2026-10-11",
+    "topic": "목 우두둑",
+    "hook": "목 꺾을 때 나는 '우두둑' 소리, 뼈가 부러지는 소리일까요?",
+    "points": [
+      "소리의 정체는 관절 속 기포(캐비테이션)가 터지는 현상이에요",
+      "세게, 자주 꺾으면 근육과 인대에 부담이 쌓일 수 있어요",
+      "뻐근할 땐 꺾지 말고 어깨부터 풀고 고개를 천천히 돌려 주세요",
+      "목 통증, 저림, 어지럼이 있다면 꺾지 말고 진료를 받으세요"
+    ],
+    "source": "Healthline 'Neck Cracking: Potential Benefits and Risks', Assessing the risk of stroke from neck manipulation (체계적 문헌고찰)"
+  },
+  {
+    "date": "2026-10-12",
+    "topic": "이어폰 볼륨",
+    "hook": "이어폰 볼륨, 얼마나 키우세요? 귀 속에서는 무슨 일이 생길까요?",
+    "points": [
+      "큰 소리가 반복되면 달팽이관 유모세포가 손상될 수 있어요",
+      "안전 청취 기준은 성인 80dB 주 40시간 정도예요",
+      "볼륨은 최대의 60% 이하, 중간중간 귀를 쉬게 해 주세요",
+      "이명이나 먹먹함이 계속되면 이어폰을 빼고 진료를 받으세요"
+    ],
+    "source": "WHO 'Deafness and hearing loss: Safe listening', WHO-ITU Global standard for safe listening devices (2019)"
+  },
+  {
+    "date": "2026-10-13",
+    "topic": "허리 우두둑",
+    "hook": "허리에서 우두둑 소리가 나면, 괜찮은 걸까요?",
+    "points": [
+      "허리 우두둑은 척추 관절 속 기체 방울과 관련된 소리로 알려져 있어요",
+      "통증이 없다면 대체로 괜찮다고 보지만, 세게 꺾는 건 피하세요",
+      "뻐근할 땐 꺾기보다 천천히 스트레칭해 주세요",
+      "저림이나 통증이 있거나 소리가 계속 반복되면 진료를 받으세요"
+    ],
+    "source": "Healthline 'What Happens When You Crack Your Back?', Healthline 'Is Cracking Your Back Bad for You?'"
+  }
+]
