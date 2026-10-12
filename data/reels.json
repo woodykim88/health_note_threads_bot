@@ -34,5 +34,17 @@
       "저림이나 통증이 있거나 소리가 계속 반복되면 진료를 받으세요"
     ],
     "source": "Healthline 'What Happens When You Crack Your Back?', Healthline 'Is Cracking Your Back Bad for You?'"
+  },
+  {
+    "date": "2026-10-14",
+    "topic": "다리 꼬는 습관",
+    "hook": "다리 꼬고 앉는 습관, 몸에는 괜찮을까요?",
+    "points": [
+      "무릎 위로 다리를 꼬면 혈압이 일시적으로 오를 수 있어요 (발목만 꼬면 뚜렷한 변화가 없었어요)",
+      "다리 꼬기가 정맥류를 만든다는 근거는 확인되지 않았어요",
+      "오래 꼬고 있으면 골반이 틀어지고 허리에 부담이 될 수 있어요",
+      "두 발을 바닥에 두고 자주 자세를 바꿔 주세요. 혈전 위험이 있다면 오래 꼬는 건 피하세요"
+    ],
+    "source": "Healthline 'Is Crossing Your Legs Dangerous?', Journal of Clinical Nursing 2010 'The effect of crossing legs on blood pressure in hypertensive patients'"
   }
 ]
