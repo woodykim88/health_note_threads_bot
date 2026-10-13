@@ -46,5 +46,17 @@
       "두 발을 바닥에 두고 자주 자세를 바꿔 주세요. 혈전 위험이 있다면 오래 꼬는 건 피하세요"
     ],
     "source": "Healthline 'Is Crossing Your Legs Dangerous?', Journal of Clinical Nursing 2010 'The effect of crossing legs on blood pressure in hypertensive patients'"
+  },
+  {
+    "date": "2026-10-15",
+    "topic": "눈 비비기",
+    "hook": "눈이 가려울 때마다 비비는 습관, 괜찮을까요?",
+    "points": [
+      "눈을 세게 자주 비비면 각막이 긁히고, 손의 먼지나 세균이 들어갈 수 있어요",
+      "만성적인 눈 비비기는 원추각막과 연관이 보고됐지만, 원인과 결과는 아직 확실하지 않아요",
+      "가렵다면 비비기보다 인공눈물이나 깨끗한 물로 씻어내 보세요",
+      "통증, 시야 흐림, 빛 번짐이 있거나 가려움이 계속되면 안과 진료를 받으세요"
+    ],
+    "source": "American Academy of Ophthalmology 'Is It OK to Rub Your Eyes?', Healthline 'Is It Safe to Rub Your Eyes?', 'Eye rubbing in the aetiology of keratoconus: a systematic review and meta-analysis' (2021)"
   }
 ]
