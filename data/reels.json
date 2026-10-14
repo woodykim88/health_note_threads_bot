@@ -58,5 +58,17 @@
       "통증, 시야 흐림, 빛 번짐이 있거나 가려움이 계속되면 안과 진료를 받으세요"
     ],
     "source": "American Academy of Ophthalmology 'Is It OK to Rub Your Eyes?', Healthline 'Is It Safe to Rub Your Eyes?', 'Eye rubbing in the aetiology of keratoconus: a systematic review and meta-analysis' (2021)"
+  },
+  {
+    "date": "2026-10-16",
+    "topic": "러닝 중 심정지",
+    "hook": "달리다 쓰러진 사람을 봤다면, 1분 안에 이것부터 해요",
+    "points": [
+      "달리다 가슴이 아프거나 답답하고, 평소와 다른 숨참·두근거림·어지럼이 있으면 멈추고 쉬어요. 증상이 계속되면 진료를 받으세요",
+      "쓰러진 사람을 보면 반응과 숨을 확인해요. 반응이 없고 숨이 없거나 비정상이면 바로 119에 신고하고, 주변 사람에게 자동심장충격기(AED)를 가져와 달라고 요청해요",
+      "가슴 한가운데를 세게, 빠르게(분당 100~120회) 눌러요. 심장충격기가 오면 전원을 켜고 음성 안내를 따르세요",
+      "가족 중 심장질환이 있거나 운동 중 정신을 잃은 적이 있다면, 달리기 전에 의사와 상담해 보세요"
+    ],
+    "source": "JAMA 2025 'Cardiac Arrest During Long-Distance Running Races'(PubMed 40159341), 미국심장협회(AHA) Hands-Only CPR, AHA Circulation 심장마비 경고 신호, 대한심폐소생협회 기본소생술(KBLS) 교재"
   }
 ]
