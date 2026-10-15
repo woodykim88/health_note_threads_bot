@@ -70,5 +70,17 @@
       "가족 중 심장질환이 있거나 운동 중 정신을 잃은 적이 있다면, 달리기 전에 의사와 상담해 보세요"
     ],
     "source": "JAMA 2025 'Cardiac Arrest During Long-Distance Running Races'(PubMed 40159341), 미국심장협회(AHA) Hands-Only CPR, AHA Circulation 심장마비 경고 신호, 대한심폐소생협회 기본소생술(KBLS) 교재"
+  },
+  {
+    "date": "2026-10-17",
+    "topic": "비타민 C 메가도스",
+    "hook": "비타민 C 많이 먹으면 감기 안 걸린다던데, 진짜일까요?",
+    "points": [
+      "건강한 일반 성인이 감기 예방 목적으로 비타민 C를 꾸준히 먹어도, 감기에 걸리는 횟수는 줄지 않았어요(체계적 문헌고찰)",
+      "꾸준히 먹으면 감기 기간이 소폭 짧아졌다는 결과는 있어요. 감기에 걸린 뒤에 먹기 시작한 경우는 일관된 효과가 없었어요",
+      "보충제를 먹는 남성에서 신장결석이 더 많았다는 연관이 보고됐어요(스웨덴 2013, 미국 2016, 여성은 연관 없음). 관찰연구라 원인이라고 단정할 수는 없어요",
+      "신장 질환이나 결석을 앓은 적이 있거나 복용량이 고민되면 의사나 약사와 상담해 보세요"
+    ],
+    "source": "Cochrane Database Syst Rev 2013 'Vitamin C for preventing and treating the common cold', JAMA Intern Med 2013 'Ascorbic Acid Supplements and Kidney Stone Incidence Among Men', AJKD 2016 'Total, Dietary, and Supplemental Vitamin C Intake and Risk of Incident Kidney Stones'"
   }
 ]
