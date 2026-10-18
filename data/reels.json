@@ -94,5 +94,17 @@
       "세게 비틀다 인대를 다친 사례는 보고돼 있어요. 아프거나 붓거나 잘 안 움직이면 진료를 받아 보세요"
     ],
     "source": "deWeber K et al. 'Knuckle Cracking and Hand Osteoarthritis' J Am Board Fam Med 2011, Castellanos J & Axelrod D. Ann Rheum Dis 1990, Unger DL. Arthritis Rheum 1998, Johns Hopkins Arthritis Center 'Knuckle Cracking Q&A'"
+  },
+  {
+    "date": "2026-10-19",
+    "topic": "독감 vs 감기",
+    "hook": "감기는 서서히, 독감은 갑자기. 몸속은 이렇게 달라요.",
+    "points": [
+      "감기는 증상이 서서히 오고, 콧물·재채기·목 아픔이 중심이에요. 열이나 근육통 같은 전신 증상은 드문 편이에요",
+      "독감은 갑자기 시작하고 열, 근육통, 두통, 피로가 흔해요. 열은 보통 3~4일 이어진다고 해요",
+      "열과 근육통은 면역 세포가 내보내는 신호 물질이 온몸에 퍼지면서 생긴다고 설명돼요. 감기도 같은 반응으로 열이 날 수 있어서 겹치는 부분은 있어요",
+      "열이 잘 안 내리거나, 나아지다 다시 심해지거나, 숨이 차면 진료를 받아 보세요. 아이, 임신부, 어르신, 만성질환이 있는 분은 더 신경 써 주세요"
+    ],
+    "source": "질병관리청 국가건강정보포털 '인플루엔자', 질병관리청 보도자료 2026.9.11(유행주의보 발령), 연합뉴스 2026.9.24(질병관리청 38주차 표본감시), CDC 'Cold Versus Flu'·'Signs and Symptoms of Flu', Eccles R. Lancet Infect Dis 2005"
   }
 ]
