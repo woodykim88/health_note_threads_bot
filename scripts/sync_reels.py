@@ -1,6 +1,6 @@
 """인스타 3D릴스 제작 폴더에서 게시 내용을 읽어 data/reels.json으로 옮긴다 (src/reels.py가 글쓰기에 참고로 쓴다).
 
-사용: python3 scripts/sync_reels.py [릴스 제작 폴더]   (기본: ~/Projects/인스타/건강노트-3D릴스)
+사용: python3 scripts/sync_reels.py [릴스 제작 폴더]   (기본: ~/Projects/보관-중단/인스타/건강노트-3D릴스)
 GitHub Actions는 그 폴더를 볼 수 없으므로, 릴스를 만든 뒤 이 스크립트를 돌리고 data/reels.json을 커밋·푸시한다.
 """
 from __future__ import annotations
@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src import reels  # noqa: E402
 
-DEFAULT_ROOT = Path.home() / 'Projects' / '인스타' / '건강노트-3D릴스'
+DEFAULT_ROOT = Path.home() / 'Projects' / '보관-중단' / '인스타' / '건강노트-3D릴스'
 
 
 def main(argv: list[str]) -> int:

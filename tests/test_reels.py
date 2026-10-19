@@ -1,7 +1,15 @@
 import json
 from datetime import date
 
+import pytest
+
 from src import llm, reels
+
+
+@pytest.fixture(autouse=True)
+def _reels_enabled(monkeypatch):
+    # 운영에서는 2026-10-20부터 꺼 두었지만(ENABLED=False), 기능 자체는 켠 상태로 시험한다
+    monkeypatch.setattr(reels, 'ENABLED', True)
 
 CAPTION = """허리에서 우두둑 소리가 나면, 괜찮은 걸까요?
 
@@ -98,3 +106,8 @@ def test_load_prompt_appends_reel_brief(tmp_path, monkeypatch):
     monkeypatch.setattr(reels, 'today', lambda: date(2026, 10, 13))
     assert '이어폰 훅?' in llm.load_prompt('casual')
     assert '이어폰 훅?' not in llm.load_prompt('factcheck')
+
+
+def test_brief_off_while_disabled(tmp_path, monkeypatch):
+    monkeypatch.setattr(reels, 'ENABLED', False)
+    assert reels.brief('casual', date(2026, 10, 13), _store(tmp_path, ROWS)) == ''

@@ -1,6 +1,6 @@
 """인스타 건강노트 3D릴스(@health_note_shorts) 내용을 Threads 글쓰기에 참고로 붙인다 (2026-10-11 사용자 결정).
 
-- 릴스 제작 폴더(~/Projects/인스타/건강노트-3D릴스)의 ledger.csv·캡션을 scripts/sync_reels.py가 data/reels.json으로 옮긴다
+- 릴스 제작 폴더(~/Projects/보관-중단/인스타/건강노트-3D릴스)의 ledger.csv·캡션을 scripts/sync_reels.py가 data/reels.json으로 옮긴다
   (GitHub Actions에서는 그 폴더를 볼 수 없어서 저장소에 파일로 둔다).
 - 이미 게시된 릴스(날짜가 오늘보다 앞)의 최근 RECENT_DAYS일 분만 쓴다. 예약만 된 릴스를 먼저 말하지 않는다.
 - 일상글(casual)은 릴스 주제를 가볍게 묻는 질문의 소재로, 뉴스 글(writer)은 기사가 같은 주제일 때 영상 한 줄 언급으로만 쓴다.
@@ -16,6 +16,9 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 REELS_PATH = Path(__file__).resolve().parent.parent / 'data' / 'reels.json'
+# 2026-10-20 끔: 건강 릴스는 10/18 중단, @health_note_shorts 는 쇼핑 채널 @jjintem.note 로 이름이 바뀌어
+# 없는 계정·영상을 글에서 언급하게 된다. 건강 릴스를 다시 시작할 때만 True 로 되돌린다.
+ENABLED = False
 ACCOUNT = '@health_note_shorts'
 RECENT_DAYS = 7
 MAX_REELS = 3
@@ -104,7 +107,7 @@ _WRITER_RULES = ('기사가 위 영상 중 하나와 같은 주제일 때만, ti
 
 def brief(name: str, now: date, path: Path | None = None) -> str:
     """name 프롬프트에 붙일 릴스 참고 문단. 해당 없거나 최근 릴스가 없으면 빈 문자열."""
-    if name not in PROMPTS:
+    if not ENABLED or name not in PROMPTS:
         return ''
     rows = recent(now, path)
     if not rows:
