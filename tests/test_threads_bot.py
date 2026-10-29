@@ -381,3 +381,89 @@ def test_flagged_line_is_dropped_without_rewriting():
                                  'FactCheck': [bad]})
     writes = [r for r in client.requests if r['text_format'].__name__ == 'ThreadPost']
     assert len(writes) == 1 and draft.rescued and '50%' not in draft.parts[1] and '무조건' not in draft.parts[1]
+
+
+def test_direct_engagement_ask_and_ai_tone_are_rejected():
+    assert any('직접 참여 부탁' in i for i in quality.rule_issues('자취하는 동생 생각나면 리포스트 ㄱㄱ'))
+    assert any('직접 참여 부탁' in i for i in quality.rule_issues('공감되면 좋아요 눌러'))
+    assert any('AI 말투' in i for i in quality.rule_issues('결론적으로 난방비가 오른대'))
+    assert quality.rule_issues('댓글에 정리함 👇 너는 보일러 몇 도로 버텨?') == []
+
+
+# --- 댓글 자동 답글 ---
+
+from src import replies  # noqa: E402
+from src.replies import ReplyDraft  # noqa: E402
+from datetime import timezone  # noqa: E402
+
+
+class ReplyClient:
+    user_id = 'u1'
+
+    def __init__(self):
+        self.created, self.published = [], []
+
+    def get(self, path, params=None):
+        if path == 'u1/threads':
+            return {'data': [{'id': 'p1', 'text': '렌털 해지 위약금 정리', 'timestamp': '2026-10-03T01:00:00+0000',
+                              'is_reply': False},
+                             {'id': 'p0', 'text': '옛 글', 'timestamp': '2026-09-20T01:00:00+0000', 'is_reply': False}]}
+        assert path == 'p1/replies'
+        return {'data': [
+            {'id': 'c1', 'text': '이거 몰랐네요 저장해요', 'username': 'fan1', 'timestamp': '2026-10-03T02:00:00+0000'},
+            {'id': 'c2', 'text': 'AI 봇이죠?', 'username': 'fan2', 'timestamp': '2026-10-03T03:00:00+0000'},
+            {'id': 'c3', 'text': '내 답글', 'username': 'health_note_news', 'timestamp': '2026-10-03T03:00:00+0000',
+             'is_reply_owned_by_me': True},
+            {'id': 'c4', 'text': '숨김', 'username': 'x', 'timestamp': '2026-10-03T03:00:00+0000', 'hide_status': 'HIDDEN'},
+        ]}
+
+    def create_text(self, text, reply_to=''):
+        self.created.append((text, reply_to))
+        return 'box'
+
+    def wait_before_publish(self):
+        pass
+
+    def publish(self, box):
+        self.published.append(box)
+        return 'm'
+
+
+NOW_REPLY = datetime(2026, 10, 3, 5, 0, tzinfo=timezone.utc)
+
+
+def test_replies_answer_new_comments_once_and_skip_identity_questions(tmp_path):
+    path = tmp_path / 'replied.json'
+    llm, _ = fake_llm({'ReplyDraft': [ReplyDraft(skip=False, reply='계약서 그 줄만 봐도 반은 막아 ㅠㅠ'),
+                                      ReplyDraft(skip=True, reason='정체 질문')]})
+    client = ReplyClient()
+    r = replies.run_replies(client, llm, 'f', None, NOW_REPLY, path)
+    assert r.outcome == 'success' and client.created == [('계약서 그 줄만 봐도 반은 막아 ㅠㅠ', 'c1')]
+    saved = replies.load_replied(path)
+    assert set(saved['ids']) == {'c1', 'c2'} and saved['days']['2026-10-03'] == 1
+    llm2, openai2 = fake_llm({})
+    replies.run_replies(client, llm2, 'f', None, NOW_REPLY, path)
+    assert openai2.requests == [] and len(client.created) == 1   # 같은 댓글에 두 번 답하지 않음
+
+
+def test_replies_drop_product_push_and_fake_experience(tmp_path):
+    llm, _ = fake_llm({'ReplyDraft': [ReplyDraft(skip=False, reply='나도 써봤는데 이거 쿠팡에서 구매 추천!'),
+                                      ReplyDraft(skip=True, reason='정체 질문')]})
+    client = ReplyClient()
+    replies.run_replies(client, llm, 'f', None, NOW_REPLY, tmp_path / 'r.json')
+    assert client.created == []
+
+
+def test_replies_respect_daily_limit(tmp_path):
+    path = tmp_path / 'replied.json'
+    replies.save_replied({'ids': [], 'days': {'2026-10-03': replies.MAX_PER_DAY}}, path)
+    llm, _ = fake_llm({})
+    r = replies.run_replies(ReplyClient(), llm, 'f', None, NOW_REPLY, path)
+    assert r.outcome == 'skipped'
+
+
+def test_reply_issues_block_links_push_and_human_claims():
+    assert replies.reply_issues('위약금 진짜 억울하지 ㅠㅠ 계약서 그 줄부터 봐') == []
+    assert replies.reply_issues('여기 링크 https://x.com')
+    assert replies.reply_issues('30대 여자인 내가 보기엔 이거 구매각')
+    assert replies.reply_issues('가' * 121)

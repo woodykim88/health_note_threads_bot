@@ -6,12 +6,13 @@ on:
     - cron: '54 3 * * *'   # post 예비(일상글 12:30 슬롯)
     - cron: '24 23,11 * * *'   # post 예비: KST 08:24, 20:24
     - cron: '31 0 * * 1'       # refresh-token: 매주 월 KST 09:31
+    - cron: '50 0-15 * * *'    # reply: KST 09:50~00:50 매시 (2026-10-30, 정시 알람 대신 GitHub cron)
   workflow_dispatch:
     inputs:
       job:
-        description: 'post=지금 게시할 슬롯 게시 / preview=글만 만들기(게시 안 함) / refresh-token=토큰 갱신 / post-pending=미리 보여 준 글 그대로 게시'
+        description: 'post=지금 게시할 슬롯 게시 / preview=글만 만들기(게시 안 함) / refresh-token=토큰 갱신 / post-pending=미리 보여 준 글 그대로 게시 / reply=새 댓글에 답글'
         type: choice
-        options: [preview, post, refresh-token, post-pending, insights]
+        options: [preview, post, refresh-token, post-pending, insights, reply]
         default: preview
       hour:
         description: 'preview 전용: 제품 슬롯 시각 (건강노트는 제품 추천 없음)'
@@ -45,6 +46,7 @@ jobs:
             '24 23,11 * * *') JOB=post ;;
             '54 3 * * *') JOB=post ;;
             '31 0 * * 1') JOB=refresh-token ;;
+            '50 0-15 * * *') JOB=reply ;;
             *) JOB="${INPUT_JOB:-preview}" ;;
           esac
           echo "job=$JOB" >> "$GITHUB_OUTPUT"
