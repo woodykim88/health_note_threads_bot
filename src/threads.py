@@ -1,4 +1,4 @@
-"""Threads API: 텍스트 게시, 게시 한도, 토큰 갱신. 토큰은 파라미터로만 보내고 오류에 URL을 남기지 않는다."""
+"""Threads API: 텍스트·그림 게시, 게시 한도, 토큰 갱신. 토큰은 파라미터로만 보내고 오류에 URL을 남기지 않는다."""
 from __future__ import annotations
 
 import time
@@ -121,6 +121,15 @@ class ThreadsClient:
             raise ThreadsError(f'Threads 글은 {MAX_TEXT_CHARS}자까지입니다 (현재 {len(text)}자).')
         params = {'media_type': 'TEXT', 'text': text, **({'reply_to_id': reply_to} if reply_to else {})}
         data = self._create(params, tagged=not reply_to)
+        if not data.get('id'):
+            raise ThreadsError('Threads 컨테이너 id가 없습니다.')
+        return str(data['id'])
+
+    def create_image(self, text: str, image_url: str) -> str:
+        """그림 + 글 컨테이너 (첫 글 전용). image_url은 공개 JPEG/PNG 주소여야 한다 (Threads는 WebP 불가)."""
+        if len(text) > MAX_TEXT_CHARS:
+            raise ThreadsError(f'Threads 글은 {MAX_TEXT_CHARS}자까지입니다 (현재 {len(text)}자).')
+        data = self._create({'media_type': 'IMAGE', 'image_url': image_url, 'text': text}, tagged=True)
         if not data.get('id'):
             raise ThreadsError('Threads 컨테이너 id가 없습니다.')
         return str(data['id'])

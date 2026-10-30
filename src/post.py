@@ -1,4 +1,4 @@
-"""게시 작업: 슬롯 시각이 되면 글을 만들고 바로 Threads에 올린다 (텍스트라 준비 단계가 따로 없다).
+"""게시 작업: 슬롯 시각이 되면 글을 만들고 바로 Threads에 올린다 (카드 글은 그림을 그려 공개 주소에 올린 뒤 그림 글로).
 
 중복 게시 방지: 공개 API 호출 직전에 PUBLISHING으로 기록하고, 그 슬롯은 다시 게시하지 않는다.
 """
@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from src import channel, compose, guard, history, notifier, schedule, state
+from src import card, channel, compose, guard, history, notifier, r2, repo_host, schedule, state, videos
 from src.guard import RunResult
 from src.models import Candidate
 from src.products import Product
@@ -33,6 +33,23 @@ class PostDeps:
     fetch_body: Callable[[Candidate], str | None]
     load_products: Callable[[], list[Product]] = lambda: []
     tg_get: Callable[..., Any] | None = None
+    load_videos: Callable[[], list[videos.Video]] = lambda: []
+    upload_card: Callable[[bytes, str], str] | None = None  # (카드 JPEG, 슬롯) → 공개 주소. 없으면 카드도 글로 게시
+
+
+def create_first(deps: PostDeps, draft: compose.Draft, key: str) -> tuple[str, tuple[str, ...], bool]:
+    """(첫 글 컨테이너, 이어 붙일 답글, 그림 글인지). 카드 그림을 그리거나 올리지 못하면 같은 내용을 글로 (게시는 막지 않는다)."""
+    if draft.card is not None and deps.upload_card is not None:
+        try:
+            url = deps.upload_card(card.render(draft.card, schedule.slot_datetime(key).date()), key)
+            return deps.client.create_image(draft.parts[0], url), (draft.card_reply,), True
+        except (card.CardError, r2.R2Error, repo_host.HostError) as e:
+            print(f'[카드 그림 실패] 글로 올립니다: {e}')
+        except ThreadsError as e:
+            if e.fatal:
+                raise
+            print(f'[카드 그림 글 거절] 글로 올립니다: {e}')
+    return deps.client.create_text(draft.parts[0]), draft.parts[1:], False
 
 
 def _stamp(now: datetime) -> str:
@@ -59,9 +76,10 @@ def publish_replies(client: ThreadsClient, parent_id: str, replies: tuple[str, .
 def post_slot(key: str, deps: PostDeps, llm: LLMClient, past: tuple[history.HistoryEntry, ...],
               now: datetime) -> history.HistoryEntry:
     draft = compose.compose(llm, deps.models, past, deps.load_candidates, deps.fetch_body, key[:10],
-                            schedule.slot_datetime(key).hour, deps.load_products, key)
-    container = deps.client.create_text(draft.parts[0])
-    entry = history.HistoryEntry(slot=key, status=PUBLISHING, title=draft.title, seed=draft.kind,
+                            schedule.slot_datetime(key).hour, deps.load_products, key, deps.load_videos)
+    container, replies, as_image = create_first(deps, draft, key)
+    kind = compose.NEWS if draft.kind == compose.CARD and not as_image else draft.kind
+    entry = history.HistoryEntry(slot=key, status=PUBLISHING, title=draft.title, seed=kind,
                                  doc_id=draft.key, source_url=draft.source_url, caption=draft.text,
                                  note=RESCUED_NOTE if draft.rescued else '', updated_at=_stamp(now))
     history.save_history(history.upsert(past, entry))
@@ -69,7 +87,7 @@ def post_slot(key: str, deps: PostDeps, llm: LLMClient, past: tuple[history.Hist
     media_id = deps.client.publish(container)
     done = history.with_status(entry, history.PUBLISHED, media_id=media_id)
     history.save_history(history.upsert(history.load_history(), done))
-    note = ' / '.join(n for n in (entry.note, publish_replies(deps.client, media_id, draft.parts[1:])) if n)
+    note = ' / '.join(n for n in (entry.note, publish_replies(deps.client, media_id, replies)) if n)
     try:
         done = history.with_status(done, history.PUBLISHED, permalink=deps.client.permalink(media_id), note=note)
     except ThreadsError as e:
@@ -105,7 +123,7 @@ def run_post(env: Mapping[str, str], deps: PostDeps, telegram: notifier.Telegram
             done = post_slot(key, deps, llm, past, now)
             past = history.load_history()
             posts.append(PostRecord(done.title, done.status, key, done.permalink))
-            kind = {compose.PRODUCT: '제품 추천', 'casual': '일상글'}.get(done.seed, '뉴스')
+            kind = {compose.PRODUCT: '제품 추천', 'casual': '일상글', compose.CARD: '한 장 카드'}.get(done.seed, '뉴스')
             mark = '⚠️ 검수 문제 줄을 빼고' if RESCUED_NOTE in done.note else '✅'
             notifier.notify(telegram, f'{mark} {kind} 게시: {done.title}\n{done.permalink or "(주소 조회 실패)"}')
         except (compose.PipelineError, LLMError) as e:

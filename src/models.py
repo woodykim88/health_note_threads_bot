@@ -39,6 +39,16 @@ class ThreadPost(BaseModel):
     pitch: str = Field(default='', description='제품 글만: 두 번째 답글의 추천 1~2줄 + 질문, 최대 200자 (뉴스 글은 빈 문자열)')
 
 
+class CardPost(BaseModel):
+    """오늘의 한 장 카드: 짧은 첫 글 + 카드 그림에 들어갈 글자. 출처·날짜·계정명은 코드가 넣는다."""
+
+    hook: str = Field(description='첫 글(그림과 함께 올라가는 글): 공감 한마디 + 카드 소개 + 한 줄 질문, 60~150자')
+    title: str = Field(description='카드 제목, 18자 이내')
+    subtitle: str = Field(description='카드 부제(누구에게·언제 필요한지), 26자 이내')
+    items: list[str] = Field(description='카드 항목 3~5개, 각 24자 이내의 짧은 체크리스트·구별표 문장')
+    action: str = Field(description='"그래서 오늘 할 일" 한 줄, 24자 이내')
+
+
 ClaimKind = Literal['supported_fact', 'unsupported_fact', 'general_advice']
 
 

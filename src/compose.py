@@ -1,6 +1,7 @@
 """글 한 편 만들기.
 
 - 뉴스 글: RSS 기사 후보 → 선별 → 본문 → 스레드(첫 글 + 답글) → 규칙·원문 대조 검수.
+- 카드 글 (channel.CARD_HOURS 슬롯만, 2026-10-31): 기사 핵심을 그림 한 장으로 (src/card.py). 안 되면 뉴스 글.
 - 제품 글 (channel.PRODUCT_HOUR 슬롯만): 아직 안 올린 인포크 제휴 제품 → 스레드(첫 글 + 답글 2개). 다 올렸거나 실패하면 뉴스 글.
 
 출처 줄·제휴 링크·광고 고지·교차 추천은 LLM이 아니라 코드가 붙인다 (빠뜨리거나 지어낼 수 없게).
@@ -11,11 +12,12 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from src import casual, channel, kr_calendar, openai_fallback, patterns, quality, rescue, schedule, selector
+from src import card, casual, channel, kr_calendar, openai_fallback, patterns, quality, rescue, schedule, selector, videos
 from src.history import HistoryEntry
 from src.llm import LLMClient, load_prompt
-from src.models import Candidate, ThreadPost
+from src.models import Candidate, CardPost, ThreadPost
 from src.products import Product
+from src.threads import MAX_TEXT_CHARS
 
 MAX_WRITE_ATTEMPTS = 2
 MAX_ARTICLE_ATTEMPTS = 3  # 본문을 못 가져오거나 검수에 떨어지면 다음 순위 기사로
@@ -23,6 +25,9 @@ COUPANG_DISCLOSURE = '이 포스팅은 쿠팡 파트너스 활동의 일환으�
 AFFILIATE_DISCLOSURE = '이 글은 제휴 링크를 포함하며, 구매 시 수수료를 받을 수 있어요.'
 PRODUCT = 'product'
 NEWS = 'news'
+CARD = 'card'
+CARD_ARTICLE_ATTEMPTS = 2  # 카드가 안 되면 남은 기사로 글 뉴스를 쓴다
+CARD_LIMITS = {'title': 22, 'subtitle': 30, 'item': 30, 'action': 30}  # 프롬프트보다 4자 여유, 최종 판정은 card.fit
 
 
 class PipelineError(Exception):
@@ -43,6 +48,8 @@ class Draft:
     source_url: str
     kind: str = NEWS
     rescued: bool = False     # 검수를 통과하지 못해 문제 줄을 빼고 낸 글 (구제 발행)
+    card: card.CardContent | None = None  # 카드 글: 그림으로 올릴 내용 (그림을 못 올리면 parts를 글로 게시)
+    card_reply: str = ''      # 카드 글: 그림을 올렸을 때 첫 글 아래에 다는 답글 (출처)
 
     @property
     def text(self) -> str:
@@ -187,16 +194,110 @@ def compose_product(llm: LLMClient, models: Models, product: Product, day: date 
     return Draft(product.url, product.name, parts, product.url, PRODUCT) if parts else None
 
 
-def compose_news(
-    llm: LLMClient, models: Models, history: Sequence[HistoryEntry],
-    load_candidates: Callable[[], list[Candidate]], fetch_body: Callable[[Candidate], str | None], today: str,
-    day: date | None = None,
-) -> Draft:
-    """점수 높은 기사부터 본문을 읽어 글을 쓰고, 검수를 통과한 첫 글을 반환합니다."""
+def rank_articles(llm: LLMClient, models: Models, history: Sequence[HistoryEntry],
+                  load_candidates: Callable[[], list[Candidate]], today: str) -> list[Candidate]:
     candidates = selector.filter_candidates(load_candidates(), history)
     print(f'[후보] {len(candidates)}건')
     ranked = selector.rank_candidates(llm, models.fast, candidates, history, today)
     print(f'[선별] 기준 통과 {len(ranked)}건')
+    return ranked
+
+
+def article_input(article: Candidate, body: str, day: date | None) -> str:
+    return (f'매체: {article.publisher}\n기사 제목: {article.title}\n독자 포인트: {article.angle}\n'
+            f'{patterns.pattern_brief(article.doc_id)}\n'
+            + (f'{calendar_fact(day)}\n' if day is not None else '') + f'--- 기사 본문 ---\n{body}')
+
+
+def to_content(post: CardPost, publisher: str) -> card.CardContent:
+    return card.CardContent(post.title.strip(), post.subtitle.strip(), tuple(i.strip() for i in post.items if i.strip()),
+                            post.action.strip(), publisher)
+
+
+def card_issues(post: CardPost, content: card.CardContent, day: date | None = None) -> list[str]:
+    """카드 글자 수·칸 맞춤·첫 글 길이와 질문 마무리·표현 규칙."""
+    issues = quality.part_issues('hook', post.hook) + quality.ending_issues(post.hook)
+    if not 3 <= len(content.items) <= 5:
+        issues.append(f'카드 항목은 3~5개로 쓰세요 (현재 {len(content.items)}개).')
+    fields = [('title', content.title, 'title'), ('subtitle', content.subtitle, 'subtitle'),
+              ('action', content.action, 'action')] + [(f'items[{n}]', t, 'item') for n, t in enumerate(content.items)]
+    issues += [f'카드 {name}이(가) {CARD_LIMITS[kind]}자를 넘습니다 (현재 {len(text)}자). 줄이세요.'
+               for name, text, kind in fields if len(text) > CARD_LIMITS[kind]]
+    if not issues:
+        try:
+            card.fit(content)
+        except card.CardError as e:
+            issues.append(f'{e} 더 짧게 쓰세요.')
+    body = f'{post.hook}\n{card.content_text(content)}'
+    if day is not None:
+        issues += kr_calendar.commute_issues(body, day)
+    return issues + quality.rule_issues(body)
+
+
+def card_text_parts(post: CardPost, content: card.CardContent, tail: str) -> tuple[str, ...]:
+    """그림을 못 올렸을 때 글로 게시할 첫 글 + 답글."""
+    reply = f'📌 {content.title}\n{card.numbered(content.items)}\n\n👉 오늘 할 일: {content.action}'
+    return post.hook.strip(), reply + tail
+
+
+def video_line(llm: LLMClient, models: Models, content: card.CardContent,
+               load_videos: Callable[[], list[videos.Video]]) -> str:
+    """카드와 같이 볼 병원 공식 영상 한 줄 (없거나 실패하면 빈 문자열, 카드 게시는 막지 않는다)."""
+    try:
+        video = videos.pick_video(llm, models.fast, card.content_text(content), load_videos())
+    except Exception as e:  # noqa: BLE001 - 영상은 덤이다
+        print(f'[영상] 건너뜀: {e.__class__.__name__}: {str(e)[:100]}')
+        return ''
+    return videos.video_tail(video) if video else ''
+
+
+def compose_card(llm: LLMClient, models: Models, ranked: Sequence[Candidate],
+                 fetch_body: Callable[[Candidate], str | None], day: date | None = None,
+                 load_videos: Callable[[], list[videos.Video]] = lambda: []) -> Draft | None:
+    """오늘의 한 장 카드 (2026-10-31). 검수를 통과한 카드가 없으면 None (글 뉴스로 대신)."""
+    for article in ranked[:CARD_ARTICLE_ATTEMPTS]:
+        print(f'[카드 기사 시도] {article.publisher}: {article.title}')
+        body = fetch_body(article)
+        if not body:
+            continue
+        feedback: tuple[str, ...] = ()
+        for attempt in range(1, MAX_WRITE_ATTEMPTS + 1):
+            extra = ('\n\n이전 카드가 자동 검수에서 탈락했어. 아래를 고쳐서 다시 써:\n'
+                     + '\n'.join(f'- {f}' for f in feedback)) if feedback else ''
+            try:
+                post = llm.parse(models.writer, load_prompt('card'), article_input(article, body, day) + extra, CardPost)
+            except Exception as exc:  # noqa: BLE001 - 콘텐츠 필터는 다음 기사로, 그 밖의 오류는 그대로
+                if not openai_fallback.is_content_filtered(exc):
+                    raise
+                print(f'[카드 건너뜀] 모델 콘텐츠 필터에 걸림: {article.title[:40]}')
+                break
+            content = to_content(post, article.publisher)
+            issues = card_issues(post, content, day)
+            if not issues:
+                issues += quality.fact_problems(llm, models.fast, f'{post.hook}\n{card.content_text(content)}', body)[0]
+            if not issues:
+                print(f'[카드 검수 통과] 시도 {attempt}')
+                tail = source_tail(article)
+                parts = card_text_parts(post, content, tail)
+                video = video_line(llm, models, content, load_videos) if videos.wanted(day) else ''
+                if video and len(parts[1] + video) <= MAX_TEXT_CHARS:
+                    tail += video
+                    parts = card_text_parts(post, content, tail)
+                return Draft(article.doc_id, article.title, parts, article.link, CARD,
+                             card=content, card_reply=tail.strip())
+            print(f'[카드 검수 탈락] 시도 {attempt}: ' + ' / '.join(issues))
+            feedback = tuple(issues)
+    return None
+
+
+def compose_news(
+    llm: LLMClient, models: Models, history: Sequence[HistoryEntry],
+    load_candidates: Callable[[], list[Candidate]], fetch_body: Callable[[Candidate], str | None], today: str,
+    day: date | None = None, ranked: Sequence[Candidate] | None = None,
+) -> Draft:
+    """점수 높은 기사부터 본문을 읽어 글을 쓰고, 검수를 통과한 첫 글을 반환합니다."""
+    if ranked is None:
+        ranked = rank_articles(llm, models, history, load_candidates, today)
     promo = wants_cross_promo(history)
     attempts: list[Attempt] = []
     for article in ranked[:MAX_ARTICLE_ATTEMPTS]:
@@ -204,9 +305,7 @@ def compose_news(
         body = fetch_body(article)
         if not body:
             continue
-        user_input = (f'매체: {article.publisher}\n기사 제목: {article.title}\n독자 포인트: {article.angle}\n'
-                      f'{patterns.pattern_brief(article.doc_id)}\n'
-                      + (f'{calendar_fact(day)}\n' if day is not None else '') + f'--- 기사 본문 ---\n{body}')
+        user_input = article_input(article, body, day)
         try:
             parts, failed = write_checked(llm, models, 'writer', user_input, source_tail(article, promo), NEWS,
                                           source=body, article=article, day=day)
@@ -235,8 +334,9 @@ def compose(
     slot_hour: int | None = None,
     load_products: Callable[[], list[Product]] = lambda: [],
     slot: str = '',
+    load_videos: Callable[[], list[videos.Video]] = lambda: [],
 ) -> Draft:
-    """일상글 슬롯이면 일상글, 제품 슬롯이면 제품 추천(실패하면 뉴스), 그 밖엔 뉴스 글."""
+    """일상글 슬롯이면 일상글, 제품 슬롯이면 제품 추천(실패하면 뉴스), 카드 슬롯이면 한 장 카드(실패하면 뉴스), 그 밖엔 뉴스 글."""
     day = (schedule.slot_datetime(slot) if slot else datetime.strptime(today, '%Y-%m-%d')).date()
     if slot and slot_hour == channel.CASUAL_HOUR:
         text, canned = casual.compose_casual(llm, models.writer, history, schedule.slot_datetime(slot), slot,
@@ -251,4 +351,11 @@ def compose(
             draft = compose_product(llm, models, product, day)
             if draft:
                 return draft
+    if slot_hour in channel.CARD_HOURS:
+        ranked = rank_articles(llm, models, history, load_candidates, today)
+        draft = compose_card(llm, models, ranked, fetch_body, day, load_videos)
+        if draft:
+            return draft
+        print('[카드] 검수를 통과한 카드가 없어 글 뉴스로 대신합니다.')
+        return compose_news(llm, models, history, load_candidates, fetch_body, today, day, ranked)
     return compose_news(llm, models, history, load_candidates, fetch_body, today, day)

@@ -2,7 +2,7 @@
 
 작업(--job):
     post           슬롯 시각이 되면 기사로 글을 만들어 바로 게시
-    preview        게시하지 않고 글만 만들어 output/preview.txt에 저장
+    preview        게시하지 않고 글만 만들어 output/preview.txt에 저장 (카드 슬롯이면 output/card.jpg도)
     refresh-token  Threads 장기 토큰 갱신 (주 1회)
     insights       최근 글 조회수를 읽어 글쓰기 참고(data/performance.md) 갱신 (하루 1번, AI 호출 없음)
     reply          최근 글의 새 댓글에 건강노트 말투로 답글 (한 번 5개·하루 20개 한도, src/replies.py)
@@ -20,8 +20,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from src import (channel, collector, compose, guard, history, notifier, performance, post, products, providers, replies,
-                 runlog, schedule, state, token_refresh)
+from src import (card, channel, collector, compose, guard, history, notifier, performance, post, products, providers,
+                 r2, replies, repo_host, runlog, schedule, state, token_refresh, videos)
 from src.guard import RunResult
 from src.http_client import http_get
 from src.llm import LLMClient, LLMError
@@ -31,6 +31,7 @@ from src import usage
 ROOT = Path(__file__).resolve().parent.parent
 JOBS = ('post', 'preview', 'refresh-token', 'post-pending', 'insights', 'reply')
 PREVIEW_PATH = ROOT / 'output' / 'preview.txt'
+CARD_PREVIEW_PATH = ROOT / 'output' / 'card.jpg'
 KNOWN_ERRORS = (providers.ProviderConfigError, ThreadsConfigError, ThreadsError, schedule.ScheduleError,
                 compose.PipelineError, LLMError)
 
@@ -47,18 +48,37 @@ def load_products():
     return products.fetch_products(http_get)
 
 
+def load_videos():
+    return videos.fetch_videos(http_get)
+
+
 def run_preview(env: Mapping[str, str], ai: providers.AISettings, hour: int | None, pending_slot: str = '') -> RunResult:
     llm = LLMClient(providers.build_text_backend(ai.text_provider, env))
     today = datetime.now(schedule.KST).strftime('%Y-%m-%d')
     draft = compose.compose(llm, compose.Models(ai.writer_model, ai.fast_model), history.load_history(),
-                            load_candidates, fetch_body, today, hour, load_products)
+                            load_candidates, fetch_body, today, hour, load_products, load_videos=load_videos)
     PREVIEW_PATH.parent.mkdir(parents=True, exist_ok=True)
     PREVIEW_PATH.write_text(draft.text, encoding='utf-8')
+    if draft.card is not None:
+        CARD_PREVIEW_PATH.write_bytes(card.render(draft.card, datetime.now(schedule.KST).date()))
+        print(f'[카드] {CARD_PREVIEW_PATH} (그림과 함께 올라갈 첫 글은 아래 첫 파트, 답글은 출처)')
     if pending_slot:
         post.save_pending(draft, pending_slot)
         print(f'[저장] data/pending.json ({pending_slot}) → post-pending 작업이 이 글을 그대로 올립니다.')
     print(f'[미리보기] ({draft.kind}) ' + ' + '.join(f'{len(p)}자' for p in draft.parts) + f'\n{draft.text}')
     return RunResult('success', f'미리보기 생성: {draft.title}', llm_calls=llm.calls)
+
+
+def card_uploader(env: Mapping[str, str]):
+    """카드 업로드 함수: R2 비밀값이 있으면 R2, 없으면 이 공개 저장소(Actions 안에서만). 둘 다 안 되면 None (글로 게시)."""
+    try:
+        config = r2.load_r2_config(env)
+    except r2.R2Error as e:
+        print(f'[카드] {e} → 저장소에 올립니다.')
+        config = None
+    if config:
+        return lambda body, slot: r2.upload(config, slot, body)
+    return repo_host.make_uploader(env)
 
 
 def run_job(job: str, env: Mapping[str, str], ai: providers.AISettings | None,
@@ -82,6 +102,7 @@ def run_job(job: str, env: Mapping[str, str], ai: providers.AISettings | None,
         models=compose.Models(ai.writer_model, ai.fast_model),
         client=ThreadsClient(load_threads_config(env)),
         load_candidates=load_candidates, fetch_body=fetch_body, load_products=load_products,
+        load_videos=load_videos, upload_card=card_uploader(env),
     )
     return post.run_post(env, deps, telegram, datetime.now(timezone.utc))
 
@@ -90,7 +111,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=f'Threads @{channel.HANDLE} 자동 게시')
     parser.add_argument('--job', choices=JOBS, default='preview')
     parser.add_argument('--save-pending', default='', help='preview: 이 슬롯 키(예: 2026-09-27T13:40)로 data/pending.json에 저장')
-    parser.add_argument('--hour', type=int, default=None, help='preview: 제품 슬롯 시각(예: 20)이면 제품 추천 글')
+    parser.add_argument('--hour', type=int, default=None, help='preview: 슬롯 시각(예: 8이면 한 장 카드 + output/card.jpg)')
     args = parser.parse_args(argv)
 
     load_dotenv(ROOT / '.env')
