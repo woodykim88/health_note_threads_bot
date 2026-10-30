@@ -89,6 +89,7 @@ SUBTITLE_FONT = ('Medium', 36)
 ACTION_FONT = ('Bold', 40)
 ITEM_PAD, ITEM_GAP, BADGE = 26, 18, 56
 TOP_Y, FOOTER_H = 150, 90
+BOTTOM_GAP = 40  # 할 일 상자와 출처 줄 사이 최소 여백
 MAX_EXTRA = 26
 
 
@@ -113,7 +114,7 @@ def fit(content: CardContent) -> tuple[_Layout, int]:
     for size in ITEM_SIZES:
         layout, bottom = _layout(content, size)
         if len(layout.title) <= 2 and len(layout.subtitle) <= 2 and bottom <= HEIGHT - FOOTER_H:
-            return layout, HEIGHT - FOOTER_H - bottom
+            return layout, max(0, HEIGHT - FOOTER_H - BOTTOM_GAP - bottom)
     raise CardError('카드 내용이 한 장에 다 들어가지 않습니다 (제목 2줄·항목 글자 수 초과).')
 
 
