@@ -390,6 +390,16 @@ def test_direct_engagement_ask_and_ai_tone_are_rejected():
     assert quality.rule_issues('댓글에 정리함 👇 너는 보일러 몇 도로 버텨?') == []
 
 
+def test_formula_openers_are_rejected():
+    # 11/2: 10/28부터 조회 급락, 정보글 9편이 "○○한 사람 손 ✋", 일상글 대부분이 "○요일 점심,"으로 시작했다
+    for text in ('아침 커피부터 마시는 사람 손 ✋ 순서가 중요하대', '피곤한 사람 손 들어 ㅋㅋ', '가을 일요일 점심, 배가 협상 중 ㅋㅋ',
+                 '화요일 점심, 졸음이 진심이야'):
+        assert any('같은 틀' in i for i in quality.rule_issues(text)), text
+    assert quality.rule_issues('점심 먹고 물은 식탁에 남아 있지 ㅋㅋ 너는 하루 몇 잔?') == []
+    assert quality.rule_issues('사람 손에 묻은 세균이 문제래. 양손 들어 올리기 10번, 너는 몇 번 돼?') == []
+    assert all(quality.rule_issues(q) == [] for q in channel.CASUAL_FALLBACKS)
+
+
 # --- 댓글 자동 답글 ---
 
 from src import replies  # noqa: E402

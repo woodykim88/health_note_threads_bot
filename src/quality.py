@@ -18,6 +18,9 @@ _FIRST_PERSON_RE = re.compile('|'.join(FIRST_PERSON_PATTERNS))
 _LINK_RE = re.compile(r'https?://|www\.')
 # 2026-10-30 조사 교훈: Meta는 "리포스트해·태그해·댓글 달아" 같은 직접 참여 부탁을 강등하고, 잦으면 프로필 추천을 막는다.
 ENGAGEMENT_ASK = re.compile(r'(리포스트|태그|공유|좋아요|팔로우|댓글)\s?(해\s?줘|해\s?둬|해\s?둠|해\s?두|ㄱㄱ|눌러|달아|남겨|부탁|하면)')
+# 2026-11-02: 10/28부터 조회 급락(중앙값 57→13). 정보글 9편이 "○○한 사람 손 ✋", 일상글 대부분이 "○요일 점심,"으로
+# 같은 틀이 반복됐다(참여 유도·틀 반복으로 읽힐 수 있음). 11/6 날짜별 중앙값 비교로 효과를 본다.
+FORMULA_OPENER = re.compile(r'손\s?✋|손\s?들어(?!\s?올)|^\s*(가을\s*|겨울\s*)?[월화수목금토일]요일\s*점심')
 # AI가 쓴 티가 나는 보고서 말투 (요약체는 스크롤을 넘기게 만든다)
 AI_TONE = ('알아보겠습니다', '살펴보겠습니다', '정리해 드릴게요', '정리해 드릴께요', '결론적으로', '요약하자면')
 # 사실검증의 생각하는 양 (None = 모델 기본값). 9/28 'low'로 해 봤더니 후킹 문장·비유까지 '근거 없는 사실'로
@@ -63,6 +66,9 @@ def rule_issues(body: str, tail: str = '') -> list[str]:
     ask = ENGAGEMENT_ASK.search(body)
     if ask:
         issues.append(f'직접 참여 부탁("{ask.group(0)}")을 빼세요. Meta가 노출을 줄입니다. 공감·질문으로만 반응을 부르세요.')
+    formula = FORMULA_OPENER.search(body)
+    if formula:
+        issues.append(f'매번 같은 틀의 첫 줄("{formula.group(0).strip()}")은 빼고, 이 글만의 구체적인 장면·사실로 여세요.')
     tone = [w for w in AI_TONE if w in body]
     if tone:
         issues.append(f'보고서·AI 말투를 빼고 친구한테 말하듯 쓰세요: {", ".join(tone)}')
